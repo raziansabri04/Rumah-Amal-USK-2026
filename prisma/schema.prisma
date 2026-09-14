@@ -1,0 +1,344 @@
+// This is your Prisma schema file for Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Muzakki {
+  nip       String   @id
+  nama      String
+  npwp      String?
+  alamat    String?
+  unitKerja String?  @map("unit_kerja")
+  noHp      String?  @map("no_hp")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  zakats      Zakat[]
+  infaqs      Infaq[]
+  rekapZakats RekapZakat[]
+
+  @@map("muzakkis")
+}
+
+model RekapZakat {
+  id          String   @id @default(cuid())
+  muzakkiNIP  String   @map("muzakki_nip")
+  muzakki     Muzakki  @relation(fields: [muzakkiNIP], references: [nip], onDelete: Cascade)
+  fileUrl     String   @map("file_url")
+  tahunRekap  String   @map("tahun_rekap")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("rekap_zakats")
+}
+
+model Zakat {
+  id                String   @id @default(cuid())
+  tipePembayar      String   @default("masyarakat") @map("tipe_pembayar")
+  jenisZakat        String   @map("jenis_zakat")
+  sumberDana        String?  @map("sumber_dana")
+  jenisPerusahaan   String?  @map("jenis_perusahaan")
+  jumlahZakat       Float    @map("jumlah_zakat")
+  nama              String
+  nip               String?
+  muzakki           Muzakki? @relation(fields: [nip], references: [nip], onDelete: SetNull)
+  email             String?
+  alamat            String?
+  noHp              String?  @map("no_hp")
+  isHambaAllah      Boolean  @default(false) @map("is_hamba_allah")
+  bersediaDihubungi Boolean  @default(false) @map("bersedia_dihubungi")
+  pesan             String?
+  buktiPembayaran   String?  @map("bukti_pembayaran")
+  setujuTerms       Boolean  @default(false) @map("setuju_terms")
+  status            String   @default("pending")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("zakats")
+}
+
+model Infaq {
+  id                String    @id @default(cuid())
+  tipePembayar      String    @default("masyarakat") @map("tipe_pembayar")
+  jenisInfaq        String    @map("jenis_infaq")
+  kampanyeId        String?   @map("kampanye_id")
+  kampanye          Kampanye? @relation(fields: [kampanyeId], references: [id], onDelete: SetNull)
+  jumlahInfaq       Float     @map("jumlah_infaq")
+  nama              String
+  nip               String?
+  muzakki           Muzakki?  @relation(fields: [nip], references: [nip], onDelete: SetNull)
+  email             String?
+  alamat            String?
+  noHp              String?   @map("no_hp")
+  isHambaAllah      Boolean   @default(false) @map("is_hamba_allah")
+  bersediaDihubungi Boolean   @default(false) @map("bersedia_dihubungi")
+  pesan             String?
+  buktiPembayaran   String?   @map("bukti_pembayaran")
+  setujuTerms       Boolean   @default(false) @map("setuju_terms")
+  status            String    @default("pending")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("infaqs")
+}
+
+model Gallery {
+  id         String   @id @default(cuid())
+  imageUrl   String   @map("image_url")
+  likesCount Int      @default(0) @map("likes_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("galleries")
+}
+
+model Newsletter {
+  id         String   @id @default(cuid())
+  judul      String
+  judulAr    String?  @map("judul_ar")
+  judulEn    String?  @map("judul_en")
+  imageUrl   String   @map("image_url")
+  tanggal    DateTime @map("tanggal")
+  likesCount Int      @default(0) @map("likes_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("newsletters")
+}
+
+model Kampanye {
+  id             String    @id @default(cuid())
+  judul          String
+  judulAr        String?   @map("judul_ar")
+  judulEn        String?   @map("judul_en")
+  deskripsi      String?
+  deskripsiAr    String?   @map("deskripsi_ar")
+  deskripsiEn    String?   @map("deskripsi_en")
+  imageUrl       String    @map("image_url")
+  targetDana     Float?    @map("target_dana")
+  terkumpul      Float     @default(0)
+  tanggalSelesai DateTime? @map("tanggal_selesai")
+  likesCount     Int       @default(0) @map("likes_count")
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  infaq          Infaq[]
+
+  @@map("kampanyes")
+}
+
+model Tag {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  announcements Announcement[]
+  news          News[]
+
+  @@map("tags")
+}
+
+model Announcement {
+  id            String                @id @default(cuid())
+  title         String
+  titleAr       String?               @map("title_ar")
+  titleEn       String?               @map("title_en")
+  slug          String                @unique
+  excerpt       String?
+  category      String?               @default("Umum")
+  coverImageUrl String?               @map("cover_image_url")
+  content       String                @db.Text
+  contentAr     String?               @db.Text @map("content_ar")
+  contentEn     String?               @db.Text @map("content_en")
+  viewsCount    Int                   @default(0) @map("views_count")
+  likesCount    Int                   @default(0) @map("likes_count")
+  published     Boolean               @default(true)
+  publishedAt   DateTime?             @default(now()) @map("published_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+  tags          Tag[]
+  comments      AnnouncementComment[]
+
+  @@map("announcements")
+}
+
+model AnnouncementComment {
+  id             String               @id @default(cuid())
+  announcementId String               @map("announcement_id")
+  announcement   Announcement         @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  name           String?              // Nama komentator (opsional / default: Anonim)
+  content        String               @db.Text
+  isApproved     Boolean              @default(true) @map("is_approved")
+  parentId       String?              @map("parent_id")
+  parent         AnnouncementComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        AnnouncementComment[] @relation("CommentReplies")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  @@map("announcement_comments")
+}
+
+model News {
+  id            String        @id @default(cuid())
+  title         String
+  titleAr       String?       @map("title_ar")
+  titleEn       String?       @map("title_en")
+  slug          String        @unique
+  excerpt       String?
+  category      String?       @default("Umum")
+  coverImageUrl String?       @map("cover_image_url")
+  content       String        @db.Text
+  contentAr     String?       @db.Text @map("content_ar")
+  contentEn     String?       @db.Text @map("content_en")
+  viewsCount    Int           @default(0) @map("views_count")
+  likesCount    Int           @default(0) @map("likes_count")
+  published     Boolean       @default(true)
+  publishedAt   DateTime?     @default(now()) @map("published_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  tags          Tag[]
+  comments      NewsComment[]
+
+  @@map("news")
+}
+
+model NewsComment {
+  id         String       @id @default(cuid())
+  newsId     String       @map("news_id")
+  news       News         @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  name       String?      // Nama komentator (opsional / default: Anonim)
+  content    String       @db.Text
+  isApproved Boolean      @default(true) @map("is_approved")
+  parentId   String?      @map("parent_id")
+  parent     NewsComment? @relation("NewsCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    NewsComment[] @relation("NewsCommentReplies")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  @@map("news_comments")
+}
+
+model Mitra {
+  id        String   @id @default(cuid())
+  nama      String
+  imageUrl  String   @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("mitras")
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  judul         String
+  judulAr       String?  @map("judul_ar")
+  judulEn       String?  @map("judul_en")
+  imageUrl      String?  @map("image_url")
+  pdfUrl        String   @map("pdf_url")
+  fileSize      Float?   @map("file_size")       // Ukuran file dalam MB (null jika pakai link Drive)
+  downloadCount Int      @default(0) @map("download_count") // Jumlah klik tombol download
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("documents")
+}
+
+model Program {
+  id            String    @id @default(cuid())
+  title         String
+  titleAr       String?   @map("title_ar")
+  titleEn       String?   @map("title_en")
+  slug          String    @unique
+  category      String    @default("PENDIDIKAN")
+  excerpt       String?
+  excerptAr     String?   @map("excerpt_ar")
+  excerptEn     String?   @map("excerpt_en")
+  coverImageUrl String?   @map("cover_image_url")
+  content       String    @db.Text
+  contentAr     String?   @db.Text @map("content_ar")
+  contentEn     String?   @db.Text @map("content_en")
+  viewsCount    Int       @default(0) @map("views_count")
+  likesCount    Int       @default(0) @map("likes_count")
+  published     Boolean   @default(true)
+  publishedAt   DateTime? @default(now()) @map("published_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("programs")
+}
+
+model NisabConfig {
+  id                String   @id @default("default")
+  hargaEmasPerGram  Float    @default(2500000) @map("harga_emas_per_gram")
+  nisabEmasGram     Float    @default(94) @map("nisab_emas_gram")
+  nisabProfesiBulan Float    @default(13000000) @map("nisab_profesi_bulan")
+  aturanQanun       String?  @default("Qanun Aceh No. 10/2018 tentang Baitul Mal") @map("aturan_qanun")
+  skNisabProfesi    String?  @default("SK DPS BMA No. 04/KPTS/2025") @map("sk_nisab_profesi")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("nisab_configs")
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  titleAr   String?  @map("title_ar")
+  titleEn   String?  @map("title_en")
+  imageUrl  String   @map("image_url")
+  linkUrl   String?  @map("link_url")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("banners")
+}
+
+model StrukturOrganisasi {
+  id        String   @id @default("default")
+  imageUrl  String   @map("image_url")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("struktur_organisasi")
+}
+
+model OtpVerification {
+  id          String   @id @default(cuid())
+  nip         String
+  channel     String   @default("whatsapp")
+  otpHash     String   @map("otp_hash")
+  phoneTarget String?  @map("phone_target")
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3) @map("max_attempts")
+  expiresAt   DateTime @map("expires_at")
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([nip, expiresAt])
+  @@map("otp_verifications")
+}
+
+model NewsLink {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  title       String
+  image       String?
+  description String?  @db.Text
+  source      String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("news_links")
+}

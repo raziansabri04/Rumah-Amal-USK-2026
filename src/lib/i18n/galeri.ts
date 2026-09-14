@@ -1,0 +1,40 @@
+export type GaleriLanguage = 'id' | 'en' | 'ar';
+
+export const galeriDictionary = {
+  id: {
+    title: 'DOKUMENTASI',
+    breadcrumbHome: 'Beranda',
+    breadcrumbCurrent: 'Dokumentasi',
+    emptyTitle: 'Belum ada foto dokumentasi',
+    emptyDesc: 'Silakan upload foto terlebih dahulu dari halaman admin.',
+    prevBtn: '< Sebelumnya',
+    nextBtn: 'Selanjutnya >',
+    prevPhoto: 'Foto Sebelumnya',
+    nextPhoto: 'Foto Selanjutnya',
+    closeModal: 'Tutup Modal',
+  },
+  en: {
+    title: 'DOCUMENTATION',
+    breadcrumbHome: 'Home',
+    breadcrumbCurrent: 'Documentation',
+    emptyTitle: 'No documentation photos yet',
+    emptyDesc: 'Please upload photos first from the admin page.',
+    prevBtn: '< Previous',
+    nextBtn: 'Next >',
+    prevPhoto: 'Previous Photo',
+    nextPhoto: 'Next Photo',
+    closeModal: 'Close Modal',
+  },
+  ar: {
+    title: 'التوثيق والمعرض',
+    breadcrumbHome: 'الرئيسية',
+    breadcrumbCurrent: 'التوثيق',
+    emptyTitle: 'لا توجد صور توثيقية بعد',
+    emptyDesc: 'يرجى تحميل الصور أولاً من صفحة المسؤول.',
+    prevBtn: '< السابق',
+    nextBtn: 'التالي >',
+    prevPhoto: 'الصورة السابقة',
+    nextPhoto: 'الصورة التالية',
+    closeModal: 'إغلاق',
+  },
+};

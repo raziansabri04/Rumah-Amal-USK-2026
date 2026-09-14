@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-montserrat: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-amiri), "Traditional Arabic", "Scheherazade New", serif;
+  --font-amiri: var(--font-amiri), "Traditional Arabic", "Scheherazade New", serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Traditional Arabic Font Rule for Arabic Language and font-serif */
+  .font-serif,
+  [lang="ar"],
+  [dir="rtl"] {
+    font-family: var(--font-amiri), "Traditional Arabic", "Scheherazade New", serif !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-montserrat), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3,
+  [dir="rtl"] h4,
+  [dir="rtl"] h5,
+  [dir="rtl"] h6,
+  [lang="ar"] h1,
+  [lang="ar"] h2,
+  [lang="ar"] h3,
+  [lang="ar"] h4,
+  [lang="ar"] h5,
+  [lang="ar"] h6 {
+    font-family: var(--font-amiri), "Traditional Arabic", serif !important;
+  }
+}
+
+/* Custom Blockquote (Kutipan Box khas Rumah Amal: Grey Box + Yellow/Gold Border) */
+blockquote {
+  border-left: 5px solid #f5b016 !important;
+  background-color: #f8f9fa !important;
+  padding: 1.25rem 1.75rem !important;
+  border-radius: 0 0.75rem 0.75rem 0 !important;
+  color: #1f2937 !important;
+  font-style: italic !important;
+  margin: 1.5rem 0 !important;
+  line-height: 1.8 !important;
+  font-size: 1.05rem !important;
+}
+
+blockquote p {
+  margin: 0 !important;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}

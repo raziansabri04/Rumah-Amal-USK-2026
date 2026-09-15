@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins, Montserrat, Amiri } from "next/font/google";
+import { SerwistProvider } from "@serwist/turbopack/react";
 import "@/app/globals.css";
 
 const poppins = Poppins({
@@ -35,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${poppins.variable} ${montserrat.variable} ${amiri.variable} font-sans antialiased`}>
       <body className="min-h-screen bg-gray-50/50 text-gray-800">
-        {children}
+        <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>
       </body>
     </html>
   );

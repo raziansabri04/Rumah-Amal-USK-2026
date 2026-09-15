@@ -1,0 +1,23 @@
+{
+  "name": "Rumah Amal Masjid Jamik USK",
+  "short_name": "Rumah Amal",
+  "description": "Lembaga pengelola zakat, infaq, dan sedekah Masjid Jamik Universitas Syiah Kuala",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0a3d2a",
+  "background_color": "#0a3d2a",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
+}

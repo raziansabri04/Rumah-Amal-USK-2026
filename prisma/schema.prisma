@@ -271,11 +271,24 @@ model Program {
   viewsCount    Int       @default(0) @map("views_count")
   likesCount    Int       @default(0) @map("likes_count")
   published     Boolean   @default(true)
-  publishedAt   DateTime? @default(now()) @map("published_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  publishedAt             DateTime? @default(now()) @map("published_at")
+  slugPendaftaranTerkait  String?   @map("slug_pendaftaran_terkait")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   @@map("programs")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  name         String?  @default("Administrator")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("SUPER_ADMIN")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
 }
 
 model NisabConfig {
@@ -342,3 +355,5 @@ model NewsLink {
 
   @@map("news_links")
 }
+
+

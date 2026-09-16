@@ -2,8 +2,10 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
-// Kredensial admin dibaca dari environment variable, bukan dari database.
-// ADMIN_EMAIL dan ADMIN_PASSWORD_HASH harus diset di .env
+import prisma from '@/lib/prisma';
+
+// Kredensial admin dibaca dari tabel database `Admin`.
+// Menggunakan fallback auto-seed dari .env jika tabel Admin belum terisi.
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -18,34 +20,62 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+        const email = (credentials.email as string).trim();
+        const password = credentials.password as string;
 
-        if (!adminEmail || !adminPasswordHash) {
+        try {
+          let admin = await (prisma as any).admin?.findUnique({
+            where: { email },
+          });
+
+          // Fallback auto-seed jika tabel Admin masih kosong dan env diset
+          if (!admin && process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD_HASH) {
+            if (email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase()) {
+              const isEnvPasswordValid = await bcrypt.compare(
+                password,
+                process.env.ADMIN_PASSWORD_HASH
+              );
+              if (isEnvPasswordValid) {
+                try {
+                  admin = await (prisma as any).admin.create({
+                    data: {
+                      email: process.env.ADMIN_EMAIL,
+                      passwordHash: process.env.ADMIN_PASSWORD_HASH,
+                      name: 'Super Admin',
+                      role: 'SUPER_ADMIN',
+                    },
+                  });
+                } catch {
+                  return {
+                    id: 'admin-default',
+                    email: process.env.ADMIN_EMAIL,
+                    name: 'Super Admin',
+                    role: 'SUPER_ADMIN',
+                  };
+                }
+              }
+            }
+          }
+
+          if (!admin) {
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(password, admin.passwordHash);
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: admin.id,
+            email: admin.email,
+            name: admin.name || 'Admin',
+            role: admin.role || 'SUPER_ADMIN',
+          };
+        } catch (err) {
+          console.error('[Admin Auth Error]', err);
           return null;
         }
-
-        // Cek email cocok
-        if (credentials.email !== adminEmail) {
-          return null;
-        }
-
-        // Verifikasi password dengan bcrypt hash
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          adminPasswordHash
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: 'admin',
-          email: adminEmail,
-          name: 'Admin',
-          role: 'admin',
-        };
       },
     }),
   ],

@@ -1,0 +1,112 @@
+// =======================================================================
+// Prisma Schema untuk Database Neon (Sistem Pendaftaran Program Bantuan)
+// =======================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/neon-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ProgramBantuan {
+  id                String    @id @default(cuid())
+  nama              String
+  slug              String    @unique
+  deskripsi         String?   @db.Text
+  gambarUrl         String?   @map("gambar_url")
+  status            String    @default("draft") // draft | dibuka | ditutup
+  tanggalBuka       DateTime? @map("tanggal_buka")
+  tanggalTutup      DateTime? @map("tanggal_tutup")
+  linkDriveTemplate String?   @map("link_drive_template")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  documentFields DocumentField[]
+  biodataFields  BiodataField[]
+  submissions    Submission[]
+
+  @@map("programs_bantuan")
+}
+
+model DocumentField {
+  id                     String         @id @default(cuid())
+  programId              String         @map("program_id")
+  program                ProgramBantuan @relation(fields: [programId], references: [id], onDelete: Cascade)
+  key                    String // e.g. 'ktp', 'surat_rekomendasi_rektor'
+  label                  String // e.g. 'KTP', 'Surat Rekomendasi Rektor'
+  required               Boolean        @default(true)
+  maxAgeMonths           Int?           @map("max_age_months")
+  expectedKeywords       String[]       @default([]) @map("expected_keywords")
+  nameCheckApplicable    Boolean        @default(false) @map("name_check_applicable")
+  isSingleCombinedUpload Boolean        @default(false) @map("is_single_combined_upload")
+  needsStampCheck        Boolean        @default(false) @map("needs_stamp_check")
+  order                  Int            @default(0)
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  documents SubmissionDocument[]
+
+  @@unique([programId, key])
+  @@map("document_fields")
+}
+
+model BiodataField {
+  id        String         @id @default(cuid())
+  programId String         @map("program_id")
+  program   ProgramBantuan @relation(fields: [programId], references: [id], onDelete: Cascade)
+  key       String // e.g. 'npm', 'nama_ayah', 'penghasilan_bulan'
+  label     String // e.g. 'NPM', 'Nama Ayah', 'Penghasilan Bulanan'
+  tipe      String // text | number | select | date | textarea | radio
+  options   String[]       @default([]) // Untuk tipe select / radio
+  required  Boolean        @default(true)
+  order     Int            @default(0)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  @@unique([programId, key])
+  @@map("biodata_fields")
+}
+
+model Submission {
+  id                  String         @id @default(cuid())
+  programId           String         @map("program_id")
+  program             ProgramBantuan @relation(fields: [programId], references: [id], onDelete: Cascade)
+  token               String         @unique @default(uuid())
+  biodataValues       Json           @default("{}") @map("biodata_values")
+  status              String         @default("menunggu_diproses") // menunggu_diproses | sedang_diproses | belum_diseleksi | lolos | tidak_lolos | gagal_diproses
+  warnings            Json           @default("[]") // Ringkasan warning validasi OCR/aturan
+  linkDokumenGabungan String?        @map("link_dokumen_gabungan") // URL file PDF final di Google Drive
+  processingStartedAt DateTime?      @map("processing_started_at") // Untuk penanda lock & timeout worker (> 15 menit)
+  submittedAt         DateTime       @default(now()) @map("submitted_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  documents SubmissionDocument[]
+
+  @@index([status, submittedAt])
+  @@index([token])
+  @@map("submissions")
+}
+
+model SubmissionDocument {
+  id               String         @id @default(cuid())
+  submissionId     String         @map("submission_id")
+  submission       Submission     @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  documentFieldId  String?        @map("document_field_id")
+  documentField    DocumentField? @relation(fields: [documentFieldId], references: [id], onDelete: SetNull)
+  fieldKey         String         @map("field_key")
+  originalFilename String         @map("original_filename")
+  fileUrl          String         @map("file_url")
+  driveFileId      String?        @map("drive_file_id")
+  fileSizeBytes    Int?           @map("file_size_bytes")
+  mimeType         String?        @map("mime_type")
+  ocrText          String?        @map("ocr_text") @db.Text
+  needsRevision    Boolean        @default(false) @map("needs_revision")
+  revisionNote     String?        @map("revision_note")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@map("submission_documents")
+}

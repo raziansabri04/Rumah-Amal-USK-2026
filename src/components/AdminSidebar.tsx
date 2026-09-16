@@ -20,6 +20,7 @@ import {
   faScaleBalanced,
   faSitemap,
   faLink,
+  faGraduationCap,
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { logoutAdmin } from '@/actions/admin-auth';
@@ -30,6 +31,12 @@ const menuGroups = [
     label: 'Overview',
     items: [
       { href: '/admin/dashboard', label: 'Dashboard', icon: faChartLine },
+    ],
+  },
+  {
+    label: 'Layanan & Beasiswa',
+    items: [
+      { href: '/admin/pendaftaran', label: 'Pendaftaran Program', icon: faGraduationCap },
     ],
   },
   {

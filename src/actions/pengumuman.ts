@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { deleteStorageFileByUrl } from '@/lib/supabase';
 import { autoTranslateAll } from '@/lib/translate';
 import { revalidatePath } from 'next/cache';
+import { broadcastPushNotification } from '@/lib/push-broadcast'; // TAMBAHAN
 
 function generateSlug(title: string): string {
   return title
@@ -26,6 +27,20 @@ async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
     slug = `${base}-${counter++}`;
   }
   return slug;
+}
+
+// TAMBAHAN: kirim notifikasi khusus pengumuman baru terbit, jangan sampai
+// gagal kirim notif bikin keseluruhan aksi publish ikut gagal untuk admin.
+async function notifyNewAnnouncement(title: string, excerpt: string | null, slug: string) {
+  try {
+    await broadcastPushNotification({
+      title: 'Pengumuman Baru',
+      body: excerpt || title,
+      url: `/pengumuman/${slug}`, // sesuaikan kalau path halaman detail beda
+    });
+  } catch (err) {
+    console.error('Gagal kirim notifikasi pengumuman baru:', err);
+  }
 }
 
 export async function getAnnouncements(page: number = 1, limit: number = 5, search: string = '') {
@@ -135,6 +150,11 @@ export async function addAnnouncement(formData: FormData) {
 
   revalidatePath('/admin/pengumuman');
   revalidatePath('/');
+
+  // TAMBAHAN: dibuat langsung dengan status published -> kirim notif
+  if (published) {
+    await notifyNewAnnouncement(title, excerpt, slug);
+  }
 }
 
 export async function updateAnnouncement(formData: FormData) {
@@ -170,9 +190,12 @@ export async function updateAnnouncement(formData: FormData) {
   }
 
   // Ambil data pengumuman saat ini untuk cek apakah cover diganti
+  // TAMBAHAN: sekalian ambil status `published` sebelumnya, buat dibandingkan
+  // setelah update -> supaya notif cuma dikirim saat transisi draft -> publish,
+  // bukan setiap kali pengumuman yang sudah publish di-edit ulang.
   const existingAnnouncement = await prisma.announcement.findUnique({
     where: { id },
-    select: { coverImageUrl: true },
+    select: { coverImageUrl: true, published: true },
   });
 
   if (
@@ -205,6 +228,12 @@ export async function updateAnnouncement(formData: FormData) {
 
   revalidatePath('/admin/pengumuman');
   revalidatePath('/');
+
+  // TAMBAHAN: cuma kirim notif kalau sebelumnya belum published, sekarang jadi published
+  const wasPublished = existingAnnouncement?.published ?? false;
+  if (!wasPublished && published) {
+    await notifyNewAnnouncement(title, excerpt, slug);
+  }
 }
 
 export async function deleteAnnouncement(id: string) {
@@ -229,4 +258,16 @@ export async function toggleAnnouncementPublished(id: string, currentPublished: 
   });
   revalidatePath('/admin/pengumuman');
   revalidatePath('/');
+
+  // TAMBAHAN: currentPublished adalah status SEBELUM toggle. Kalau sebelumnya
+  // false (belum publish) dan sekarang jadi true, berarti baru terbit -> kirim notif.
+  if (!currentPublished) {
+    const announcement = await prisma.announcement.findUnique({
+      where: { id },
+      select: { title: true, excerpt: true, slug: true },
+    });
+    if (announcement) {
+      await notifyNewAnnouncement(announcement.title, announcement.excerpt, announcement.slug);
+    }
+  }
 }

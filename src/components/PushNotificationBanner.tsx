@@ -18,6 +18,10 @@ import { saveSubscription } from "@/actions/push-subscription";
 const SNOOZE_DAYS = 7;
 const DISMISS_KEY = "ra-push-banner-dismissed-at";
 
+// Jeda sebelum banner/bell ditampilkan ke user, biar tidak langsung
+// "menyerbu" begitu halaman dibuka.
+const SHOW_DELAY_MS = 4000;
+
 type BannerState = "hidden" | "banner" | "bell";
 type FeedbackState = "idle" | "loading" | "success" | "error";
 
@@ -64,6 +68,9 @@ export default function PushNotificationBanner() {
   // "Can't perform a React state update on an unmounted component").
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ref buat timeout delay kemunculan banner/bell pertama kali.
+  const showDelayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!isStandaloneMode() || !pushSupported()) return;
 
@@ -85,16 +92,27 @@ export default function PushNotificationBanner() {
       return;
     }
 
-    // permission === "default" -> belum pernah diputuskan
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
-    if (!dismissedAt) {
-      setState("banner");
-      return;
-    }
+    // permission === "default" -> belum pernah diputuskan.
+    // Tunda kemunculan banner/bell beberapa detik biar tidak langsung
+    // muncul begitu halaman kebuka.
+    showDelayTimeoutRef.current = setTimeout(() => {
+      const dismissedAt = localStorage.getItem(DISMISS_KEY);
+      if (!dismissedAt) {
+        setState("banner");
+        return;
+      }
 
-    const daysSinceDismiss =
-      (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
-    setState(daysSinceDismiss >= SNOOZE_DAYS ? "banner" : "bell");
+      const daysSinceDismiss =
+        (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+      setState(daysSinceDismiss >= SNOOZE_DAYS ? "banner" : "bell");
+    }, SHOW_DELAY_MS);
+  }, []);
+
+  // Cleanup timeout delay kalau komponen unmount sebelum delay selesai
+  useEffect(() => {
+    return () => {
+      if (showDelayTimeoutRef.current) clearTimeout(showDelayTimeoutRef.current);
+    };
   }, []);
 
   // FIX #1: cleanup timeout kalau komponen unmount duluan
@@ -216,60 +234,68 @@ export default function PushNotificationBanner() {
   }
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-40 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl bg-[#0a3d2a] p-4 text-white shadow-2xl sm:left-auto sm:right-5 sm:translate-x-0">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f0a500]/15">
-          <FontAwesomeIcon icon={faBell} className="text-[#f0a500]" />
-        </div>
-
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Aktifkan Notifikasi</p>
-          <p className="mt-1 text-xs text-white/80">
-            Dapatkan pemberitahuan langsung untuk pengumuman dan berita
-            terbaru dari Rumah Amal Masjid Jamik USK.
-          </p>
-
-          {feedback === "error" && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-red-300">
-              <FontAwesomeIcon icon={faCircleExclamation} />
-              {errorMessage}
-            </p>
-          )}
-          {feedback === "success" && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-300">
-              <FontAwesomeIcon icon={faCircleCheck} />
-              Notifikasi aktif!
-            </p>
-          )}
-
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={handleActivate}
-              disabled={feedback === "loading" || feedback === "success"}
-              className="flex items-center gap-1.5 rounded-lg bg-[#f0a500] px-3 py-1.5 text-xs font-semibold text-[#0a3d2a] transition-colors hover:bg-[#f0a500]/90 disabled:opacity-70"
-            >
-              {feedback === "loading" && (
-                <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-              )}
-              Aktifkan
-            </button>
-            <button
-              onClick={handleDismiss}
-              disabled={feedback === "loading"}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
-            >
-              Nanti Saja
-            </button>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      onClick={handleDismiss}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl bg-[#0a3d2a] p-5 text-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f0a500]/15">
+            <FontAwesomeIcon icon={faBell} className="text-[#f0a500]" />
           </div>
-        </div>
 
-        <button
-          onClick={handleDismiss}
-          aria-label="Tutup"
-          className="shrink-0 text-white/50 transition-colors hover:text-white"
-        >
-          <FontAwesomeIcon icon={faXmark} />
-        </button>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Aktifkan Notifikasi</p>
+            <p className="mt-1 text-xs text-white/80">
+              Dapatkan pemberitahuan langsung untuk pengumuman dan berita
+              terbaru dari Rumah Amal Masjid Jamik USK.
+            </p>
+
+            {feedback === "error" && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-red-300">
+                <FontAwesomeIcon icon={faCircleExclamation} />
+                {errorMessage}
+              </p>
+            )}
+            {feedback === "success" && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-300">
+                <FontAwesomeIcon icon={faCircleCheck} />
+                Notifikasi aktif!
+              </p>
+            )}
+
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={handleActivate}
+                disabled={feedback === "loading" || feedback === "success"}
+                className="flex items-center gap-1.5 rounded-lg bg-[#f0a500] px-3 py-1.5 text-xs font-semibold text-[#0a3d2a] transition-colors hover:bg-[#f0a500]/90 disabled:opacity-70"
+              >
+                {feedback === "loading" && (
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                )}
+                Aktifkan
+              </button>
+              <button
+                onClick={handleDismiss}
+                disabled={feedback === "loading"}
+                className="rounded-lg border border-white/25 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white hover:border-white/40 disabled:opacity-50"
+              >
+                Nanti Saja
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={handleDismiss}
+            aria-label="Tutup"
+            className="shrink-0 text-white/50 transition-colors hover:text-white"
+          >
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        </div>
       </div>
     </div>
   );

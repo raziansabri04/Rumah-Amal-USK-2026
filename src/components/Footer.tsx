@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { footerDictionary, FooterLanguage } from "@/lib/i18n/footer";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 export default function Footer() {
   const [lang, setLang] = useState<FooterLanguage>('id');
@@ -140,6 +141,11 @@ export default function Footer() {
                   <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                 </svg>
               </a>
+            </div>
+
+            {/* Install App Button - di atas CTA Ajukan Keluhan */}
+            <div className="mt-2">
+              <InstallAppButton />
             </div>
 
             {/* CTA Button */}

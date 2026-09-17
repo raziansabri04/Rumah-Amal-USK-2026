@@ -38,6 +38,7 @@ const NAV_LABELS: Record<Language, Record<string, string>> = {
     Galeri: "Galeri",
     BayarZakat: "Kalkulator Zakat",
     CekRiwayat: "Cek Riwayat Zakat & Infaq",
+    Pendaftaran: "Pendaftaran Beasiswa & Bantuan",
     Bahasa: "Bahasa",
   },
   en: {
@@ -52,6 +53,7 @@ const NAV_LABELS: Record<Language, Record<string, string>> = {
     Galeri: "Gallery",
     BayarZakat: "Zakat Calculator",
     CekRiwayat: "Check Zakat & Infaq History",
+    Pendaftaran: "Scholarship & Aid Application",
     Bahasa: "Language",
   },
   ar: {
@@ -66,6 +68,7 @@ const NAV_LABELS: Record<Language, Record<string, string>> = {
     Galeri: "المعرض",
     BayarZakat: "حاسبة الزكاة",
     CekRiwayat: "التحقق من سجل الزكاة والإنفاق",
+    Pendaftaran: "التسجيل في المنح والمساعدات",
     Bahasa: "اللغة",
   },
 };
@@ -230,6 +233,14 @@ export default function Navbar() {
                           className="block px-4 py-2 text-[13px] text-gray-700 font-semibold hover:bg-gray-50 hover:text-[#0b6330] transition-colors"
                         >
                           {t.Kampanye}
+                        </Link>
+                        <div className="border-t border-gray-100 my-1" />
+                        <Link
+                          href="/pendaftaran"
+                          onClick={() => setProgramDropdownOpen(false)}
+                          className="block px-4 py-2 text-[13px] text-[#0b6330] font-bold hover:bg-green-50/80 transition-colors"
+                        >
+                          {t.Pendaftaran}
                         </Link>
                       </div>
                     </div>
@@ -435,6 +446,13 @@ export default function Navbar() {
                       className="py-1.5 text-base font-semibold text-gray-700 hover:text-[#0b6330]"
                     >
                       {t.Kampanye}
+                    </Link>
+                    <Link
+                      href="/pendaftaran"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-1.5 text-base font-bold text-[#0b6330] hover:text-[#084d25]"
+                    >
+                      {t.Pendaftaran}
                     </Link>
                   </div>
                 )}

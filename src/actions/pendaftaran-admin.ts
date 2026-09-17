@@ -167,6 +167,7 @@ export async function updateProgramBantuan(
 
     revalidatePath('/admin/pendaftaran');
     revalidatePath(`/admin/pendaftaran/${id}`);
+    revalidatePath('/pendaftaran');
     return { success: true, data: updated };
   } catch (error: any) {
     console.error('[updateProgramBantuan error]', error);
@@ -181,6 +182,7 @@ export async function deleteProgramBantuan(id: string) {
     });
 
     revalidatePath('/admin/pendaftaran');
+    revalidatePath('/pendaftaran');
     return { success: true };
   } catch (error: any) {
     console.error('[deleteProgramBantuan error]', error);
@@ -197,6 +199,7 @@ export async function toggleProgramStatus(id: string, status: 'draft' | 'dibuka'
 
     revalidatePath('/admin/pendaftaran');
     revalidatePath(`/admin/pendaftaran/${id}`);
+    revalidatePath('/pendaftaran');
     return { success: true, data: updated };
   } catch (error: any) {
     console.error('[toggleProgramStatus error]', error);

@@ -17,6 +17,20 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
+export const proxy = auth((req) => {
+  const { pathname } = req.nextUrl;
+
+  if (pathname === '/admin/login' && req.auth) {
+    return NextResponse.redirect(new URL('/admin', req.url));
+  }
+
+  if (!pathname.startsWith('/admin/login') && !req.auth) {
+    return NextResponse.redirect(new URL('/admin/login', req.url));
+  }
+
+  return NextResponse.next();
+});
+
 export const config = {
   matcher: ['/admin/:path*'],
 };

@@ -226,7 +226,7 @@ export default function PushNotificationBanner() {
       <button
         onClick={handleReopen}
         aria-label="Aktifkan notifikasi"
-        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0a3d2a] text-[#f0a500] shadow-lg transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-5 left-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#0a3d2a] text-[#f0a500] shadow-lg transition-transform hover:scale-105 active:scale-95"
       >
         <FontAwesomeIcon icon={faBell} className="text-lg" />
       </button>

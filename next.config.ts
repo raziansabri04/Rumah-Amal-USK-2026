@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '200mb',
     },
   },
+  devIndicators: false,
 };
 
 export default withSerwist(nextConfig);

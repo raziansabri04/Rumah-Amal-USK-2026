@@ -11,11 +11,55 @@ declare global {
 }
 declare const self: ServiceWorkerGlobalScope;
 
+// Manifest dari build (Next.js/Turbopack). Kosong di dev mode,
+// lengkap (termasuk /~offline) di production build.
+const manifestEntries = self.__SW_MANIFEST || [];
+
+// Cek apakah /~offline SUDAH otomatis masuk manifest (biasanya iya
+// di production build). Kalau sudah ada, JANGAN tambahkan manual lagi,
+// karena akan bikin dua entry untuk URL yang sama dengan revision
+// berbeda -> Serwist/Workbox menolak install ("add-to-cache-list-
+// conflicting-entries") dan seluruh service worker gagal register.
+const hasOfflineEntry = manifestEntries.some((entry) =>
+  typeof entry === "string"
+    ? entry.includes("/~offline")
+    : entry.url.includes("/~offline")
+);
+
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
+  precacheEntries: [
+    ...manifestEntries,
+    // Fallback manual: cuma dipakai saat dev mode (manifest kosong),
+    // supaya /~offline tetap ke-precache walau Turbopack dev server
+    // tidak generate manifest lengkap.
+    ...(hasOfflineEntry ? [] : [{ url: "/~offline", revision: "1" }]),
+  ],
+  precacheOptions: {
+    plugins: [
+      {
+        // Next.js App Router mengirim header Vary: RSC, Next-Router-State-Tree, dll
+        // di setiap response halaman. Kalau Vary ini ikut tersimpan di cache,
+        // Cache.match() akan membandingkan header-header itu antara request yang
+        // gagal (navigasi asli, bawa header RSC) vs request yang dipakai saat
+        // precache (fetch polos tanpa header itu) -> hasilnya cache miss walau
+        // entry-nya ada. Solusinya: buang header Vary sebelum disimpan ke cache.
+        cacheWillUpdate: async ({ response }) => {
+          if (!response) return null;
+          const headers = new Headers(response.headers);
+          headers.delete("vary");
+          const body = await response.clone().arrayBuffer();
+          return new Response(body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+          });
+        },
+      },
+    ],
+  },
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true,
+  navigationPreload: false,
   runtimeCaching: defaultCache,
   fallbacks: {
     entries: [

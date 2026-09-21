@@ -10,6 +10,12 @@ import {
   faCircleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { saveSubscription } from "@/actions/push-subscription";
+import {
+  PUSH_OPT_OUT_KEY,
+  PUSH_STATUS_EVENT,
+  pushSupported,
+  urlBase64ToUint8Array,
+} from "@/lib/push-client";
 
 // Berapa lama banner "istirahat" setelah user klik "Nanti Saja"
 // sebelum ditawarkan lagi lewat banner penuh. Sebelum itu, tetap
@@ -25,18 +31,6 @@ const SHOW_DELAY_MS = 4000;
 type BannerState = "hidden" | "banner" | "bell";
 type FeedbackState = "idle" | "loading" | "success" | "error";
 
-// Konversi VAPID public key (base64url) ke Uint8Array untuk pushManager.subscribe
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
 function isStandaloneMode() {
   if (typeof window === "undefined") return false;
   const displayModeStandalone = window.matchMedia(
@@ -47,15 +41,6 @@ function isStandaloneMode() {
   const iosStandalone = (window.navigator as unknown as { standalone?: boolean })
     .standalone;
   return displayModeStandalone || iosStandalone === true;
-}
-
-function pushSupported() {
-  return (
-    typeof window !== "undefined" &&
-    "Notification" in window &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window
-  );
 }
 
 export default function PushNotificationBanner() {
@@ -87,7 +72,11 @@ export default function PushNotificationBanner() {
       // Sudah diizinkan sebelumnya - pastikan subscription masih ada di
       // browser & tersimpan di server. Kalau hilang (mis. cache dibersihkan),
       // subscribe ulang secara diam-diam tanpa menampilkan banner.
-      syncExistingSubscription();
+      // Kecuali user sengaja mematikannya lewat toggle di footer: izin browser
+      // tetap "granted" setelah unsubscribe, jadi hormati pilihan itu.
+      if (localStorage.getItem(PUSH_OPT_OUT_KEY) !== "1") {
+        syncExistingSubscription();
+      }
       setState("hidden");
       return;
     }
@@ -113,6 +102,18 @@ export default function PushNotificationBanner() {
     return () => {
       if (showDelayTimeoutRef.current) clearTimeout(showDelayTimeoutRef.current);
     };
+  }, []);
+
+  // Kalau notifikasi diaktifkan/dimatikan lewat NotificationToggle di footer
+  // saat banner belum/sedang tampil, sembunyikan banner (izin sudah diputuskan).
+  useEffect(() => {
+    const handleStatusChange = () => {
+      if (!pushSupported() || Notification.permission === "default") return;
+      if (showDelayTimeoutRef.current) clearTimeout(showDelayTimeoutRef.current);
+      setState("hidden");
+    };
+    window.addEventListener(PUSH_STATUS_EVENT, handleStatusChange);
+    return () => window.removeEventListener(PUSH_STATUS_EVENT, handleStatusChange);
   }, []);
 
   // FIX #1: cleanup timeout kalau komponen unmount duluan
@@ -198,6 +199,9 @@ export default function PushNotificationBanner() {
       });
 
       localStorage.removeItem(DISMISS_KEY);
+      localStorage.removeItem(PUSH_OPT_OUT_KEY);
+      // Beri tahu NotificationToggle di footer supaya status-nya ikut berubah
+      window.dispatchEvent(new Event(PUSH_STATUS_EVENT));
       setFeedback("success");
       // FIX #1: simpan timeout ID ke ref, bukan langsung setTimeout lepas
       successTimeoutRef.current = setTimeout(() => setState("hidden"), 1800);

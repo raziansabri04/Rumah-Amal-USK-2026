@@ -19,5 +19,33 @@
   "background_color": "#0a3d2a",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "shortcuts": [
+    {
+      "name": "Pengumuman",
+      "short_name": "Pengumuman",
+      "description": "Lihat pengumuman terbaru dari Rumah Amal",
+      "url": "/pengumuman",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Kalkulator Zakat",
+      "short_name": "Kalkulator",
+      "description": "Hitung zakat yang perlu dibayarkan",
+      "url": "/kalkulator-zakat",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

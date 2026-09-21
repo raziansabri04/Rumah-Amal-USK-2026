@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { footerDictionary, FooterLanguage } from "@/lib/i18n/footer";
 import { InstallAppButton } from "@/components/InstallAppButton";
+import NotificationToggle from "@/components/NotificationToggle";
 
 export default function Footer() {
   const [lang, setLang] = useState<FooterLanguage>('id');
@@ -143,9 +144,10 @@ export default function Footer() {
               </a>
             </div>
 
-            {/* Install App Button - di atas CTA Ajukan Keluhan */}
-            <div className="mt-2">
+            {/* Install App + toggle notifikasi - di atas CTA Ajukan Keluhan */}
+            <div className="mt-2 flex flex-col items-start gap-3">
               <InstallAppButton />
+              <NotificationToggle lang={lang} />
             </div>
 
             {/* CTA Button */}

@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 // ADMIN_EMAIL dan ADMIN_PASSWORD_HASH harus diset di .env
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       name: 'credentials',

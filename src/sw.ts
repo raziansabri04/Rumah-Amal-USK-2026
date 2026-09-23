@@ -3,6 +3,7 @@
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
+import { incrementBadgeCount, clearBadgeCount } from "./lib/sw-badge";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -96,7 +97,13 @@ self.addEventListener("push", (event) => {
     data: { url: data.url || "/" },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  // Tampilkan notifikasi DAN naikkan angka badge di icon app secara bersamaan.
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      incrementBadgeCount(),
+    ])
+  );
 });
 
 // TAMBAHAN: saat notifikasi diklik, buka/fokus ke halaman terkait.
@@ -105,15 +112,29 @@ self.addEventListener("notificationclick", (event) => {
   const targetUrl = (event.notification.data as { url?: string })?.url || "/";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(targetUrl) && "focus" in client) {
-          return client.focus();
+    Promise.all([
+      // User sudah lihat notifikasinya (klik) -> badge di-reset ke 0.
+      clearBadgeCount(),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.includes(targetUrl) && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
-      }
-    })
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
+      }),
+    ])
   );
+});
+
+// TAMBAHAN: listener pesan dari client (dipanggil oleh hook `useBadgeSync`
+// di src/hooks/use-badge-sync.ts). Dipakai untuk kasus user TIDAK klik
+// notifikasi (mis. swipe-away) tapi tetap buka/fokus ke app secara manual --
+// badge harus tetap ke-reset saat itu.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "CLEAR_BADGE") {
+    event.waitUntil(clearBadgeCount());
+  }
 });

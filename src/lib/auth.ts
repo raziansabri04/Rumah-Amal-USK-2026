@@ -16,7 +16,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.error('[DEBUG-AUTH] email atau password kosong dari form');
           return null;
         }
 
@@ -24,18 +23,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
         if (!adminEmail || !adminPasswordHash) {
-          console.error('[DEBUG-AUTH] env var kosong -> ADMIN_EMAIL:', !!adminEmail, 'ADMIN_PASSWORD_HASH:', !!adminPasswordHash);
           return null;
         }
 
-        // DEBUG SEMENTARA: jangan biarkan ini ke-commit permanen, ini expose
-        // sebagian info sensitif ke log. Hapus lagi setelah masalah ketemu.
-        console.error('[DEBUG-AUTH] panjang ADMIN_PASSWORD_HASH:', adminPasswordHash.length, 'prefix:', adminPasswordHash.slice(0, 7));
-        console.error('[DEBUG-AUTH] email dari form === ADMIN_EMAIL ?', credentials.email === adminEmail);
-
         // Cek email cocok
         if (credentials.email !== adminEmail) {
-          console.error('[DEBUG-AUTH] GAGAL di pengecekan email. Form:', JSON.stringify(credentials.email), 'Env:', JSON.stringify(adminEmail));
           return null;
         }
 
@@ -46,11 +38,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!isPasswordValid) {
-          console.error('[DEBUG-AUTH] GAGAL di bcrypt.compare -> hash tidak cocok dengan password yang diketik');
           return null;
         }
-
-        console.error('[DEBUG-AUTH] SUKSES, lolos semua pengecekan');
 
         return {
           id: 'admin',

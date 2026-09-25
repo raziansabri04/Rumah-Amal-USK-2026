@@ -166,7 +166,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center shrink-0">
               <Image
-                src="/logo/Rumah Amal.png"
+                src="/logo/rumah-amal.png"
                 alt="Rumah Amal Masjid Jamik USK"
                 width={180}
                 height={45}

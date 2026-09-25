@@ -28,7 +28,7 @@
       "url": "/pengumuman",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/icons/icon-pengumuman.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -41,7 +41,7 @@
       "url": "/kalkulator-zakat",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/icons/icon-kalkulator.png",
           "sizes": "192x192",
           "type": "image/png"
         }

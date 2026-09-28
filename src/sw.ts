@@ -91,11 +91,11 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "Rumah Amal Masjid Jamik USK";
   const options: NotificationOptions = {
-    body: data.body || "",
-    icon: "/icons/icon-192x192.png", // sesuaikan path icon PWA kamu
-    badge: "/icons/icon-192x192.png", // sesuaikan juga
-    data: { url: data.url || "/" },
-  };
+  body: data.body || "",
+  icon: "/icons/icon-192.png",
+  badge: "/icons/icon-192.png", // sementara; idealnya diganti icon monokrom
+  data: { url: data.url || "/" },
+};
 
   // Tampilkan notifikasi DAN naikkan angka badge di icon app secara bersamaan.
   event.waitUntil(

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback, useRef, use } from 'react';
 import Link from 'next/link';
 import ShareAndLikeBar from '@/components/ShareAndLikeBar';
 
@@ -32,6 +32,8 @@ export default function PublicProgramDetailPage({
 
   const [program, setProgram] = useState<ProgramDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  // true = gagal fetch (offline/server error), BEDA dengan data memang tidak ada
+  const [fetchError, setFetchError] = useState(false);
   const [lang, setLang] = useState<Language>('id');
 
   // Client-side auto translation state for missing DB translations
@@ -40,6 +42,8 @@ export default function PublicProgramDetailPage({
   const [autoArContent, setAutoArContent] = useState('');
   const [autoEnTitle, setAutoEnTitle] = useState('');
   const [autoEnContent, setAutoEnContent] = useState('');
+  // Bahasa yang sudah dicoba diterjemahkan, supaya kegagalan tidak memicu retry tanpa henti
+  const translateAttempted = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const readLang = () => {
@@ -60,21 +64,23 @@ export default function PublicProgramDetailPage({
 
   const fetchProgramDetail = useCallback(async () => {
     setLoading(true);
+    setFetchError(false);
     try {
       const res = await fetch('/api/program');
-      if (res.ok) {
-        const data = await res.json();
-        const list: ProgramDetail[] = data.programs || [];
-        const found = list.find((p) => p.slug === slug);
-        if (found) {
-          setProgram(found);
-          if (found.id) {
-            fetch(`/api/program/${found.id}/views`, { method: 'POST' }).catch(() => {});
-          }
+      if (!res.ok) throw new Error(`Gagal memuat program (HTTP ${res.status})`);
+      const data = await res.json();
+      const list: ProgramDetail[] = data.programs || [];
+      const found = list.find((p) => p.slug === slug);
+      if (found) {
+        setProgram(found);
+        if (found.id) {
+          fetch(`/api/program/${found.id}/views`, { method: 'POST' }).catch(() => {});
         }
       }
+      // found === undefined -> data memang tidak ada, biarkan program = null (UI "Tidak Ditemukan")
     } catch (err) {
       console.error('Error fetching program detail:', err);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -84,6 +90,14 @@ export default function PublicProgramDetailPage({
     fetchProgramDetail();
   }, [fetchProgramDetail]);
 
+  // Kalau sebelumnya gagal karena offline, coba lagi otomatis begitu koneksi kembali
+  useEffect(() => {
+    if (!fetchError) return;
+    const retry = () => fetchProgramDetail();
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [fetchError, fetchProgramDetail]);
+
   // Handle on-the-fly auto translation when DB fields are missing
   useEffect(() => {
     if (!program) return;
@@ -91,7 +105,8 @@ export default function PublicProgramDetailPage({
     async function triggerAutoTranslate() {
       if (!program) return;
 
-      if (lang === 'ar' && !program.titleAr && !autoArTitle && !translating) {
+      if (lang === 'ar' && !program.titleAr && !autoArTitle && !translating && !translateAttempted.current.has('ar')) {
+        translateAttempted.current.add('ar');
         setTranslating(true);
         try {
           const res = await fetch('/api/translate', {
@@ -113,7 +128,8 @@ export default function PublicProgramDetailPage({
         } finally {
           setTranslating(false);
         }
-      } else if (lang === 'en' && !program.titleEn && !autoEnTitle && !translating) {
+      } else if (lang === 'en' && !program.titleEn && !autoEnTitle && !translating && !translateAttempted.current.has('en')) {
+        translateAttempted.current.add('en');
         setTranslating(true);
         try {
           const res = await fetch('/api/translate', {
@@ -165,6 +181,34 @@ export default function PublicProgramDetailPage({
             <div className="h-4 bg-gray-200 w-5/6 rounded" />
             <div className="h-4 bg-gray-200 w-4/6 rounded" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-white py-16 px-4 text-center font-sans">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {lang === 'ar' ? 'تعذّر تحميل البرنامج' : lang === 'en' ? 'Failed to Load Program' : 'Gagal Memuat Program'}
+        </h2>
+        <p className="text-gray-500 mb-6">
+          {lang === 'ar'
+            ? 'تحقق من اتصالك بالإنترنت ثم حاول مرة أخرى.'
+            : lang === 'en'
+            ? 'Please check your internet connection and try again.'
+            : 'Periksa koneksi internet Anda lalu coba lagi.'}
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={fetchProgramDetail}
+            className="px-5 py-2.5 bg-[#0b6330] text-white font-bold rounded-xl text-sm cursor-pointer"
+          >
+            {lang === 'ar' ? 'حاول مرة أخرى' : lang === 'en' ? 'Try Again' : 'Coba Lagi'}
+          </button>
+          <Link href="/program" className="px-5 py-2.5 border border-[#0b6330] text-[#0b6330] font-bold rounded-xl text-sm">
+            {lang === 'ar' ? 'قائمة البرامج' : lang === 'en' ? 'Program List' : 'Daftar Program'}
+          </Link>
         </div>
       </div>
     );

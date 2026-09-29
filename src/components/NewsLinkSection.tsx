@@ -4,6 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import NewsLinkCard from "./NewsLinkCard";
 import { HomeLanguage, homeDictionary } from "@/lib/i18n/home";
 
+// Batas retry saat fetch berita tambahan gagal (jaringan putus sesaat, dll.)
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 2000;
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 interface NewsLinkItem {
   id: string;
   url: string;
@@ -32,6 +37,14 @@ export default function NewsLinkSection({
   const [isTransitioning, setIsTransitioning] = useState(true);
   const [loadedImageIds, setLoadedImageIds] = useState<Record<string, boolean>>({});
   const isHovering = useRef(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const sectionTitle =
     title ||
@@ -73,32 +86,51 @@ export default function NewsLinkSection({
     setCurrentIndex(itemsPerView);
   }, [itemsPerView]);
 
-  // Function to load the next batch of external news links from backend API
+  // Function to load the next batch of external news links from backend API.
+  // Kalau fetch gagal karena error jaringan, dicoba ulang maksimal MAX_RETRIES kali
+  // dengan jeda bertambah; setelah itu berhenti supaya tidak looping tanpa henti.
   const loadNextBatch = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
+    const nextPage = page + 1;
+
     try {
-      const nextPage = page + 1;
-      const res = await fetch(`/api/news-link?page=${nextPage}&limit=10`);
-      if (res.ok) {
-        const data = await res.json();
-        const newItems: NewsLinkItem[] = data.newsLinks || [];
-        if (newItems.length > 0) {
-          setItems((prev) => {
-            const existingIds = new Set(prev.map((i) => i.id));
-            const uniqueNew = newItems.filter((i) => !existingIds.has(i.id));
-            return [...prev, ...uniqueNew];
-          });
-          setPage(nextPage);
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const res = await fetch(`/api/news-link?page=${nextPage}&limit=10`);
+          if (!isMounted.current) return;
+
+          if (!res.ok) {
+            setHasMore(false);
+            return;
+          }
+
+          const data = await res.json();
+          const newItems: NewsLinkItem[] = data.newsLinks || [];
+          if (newItems.length > 0) {
+            setItems((prev) => {
+              const existingIds = new Set(prev.map((i) => i.id));
+              const uniqueNew = newItems.filter((i) => !existingIds.has(i.id));
+              return [...prev, ...uniqueNew];
+            });
+            setPage(nextPage);
+          }
+          setHasMore(Boolean(data.hasMore));
+          return;
+        } catch (err) {
+          if (!isMounted.current) return;
+
+          if (attempt === MAX_RETRIES) {
+            console.warn("Gagal memuat berita tambahan setelah beberapa percobaan:", err);
+            setHasMore(false);
+            return;
+          }
+          await sleep(RETRY_DELAY_MS * (attempt + 1));
+          if (!isMounted.current) return;
         }
-        setHasMore(Boolean(data.hasMore));
-      } else {
-        setHasMore(false);
       }
-    } catch (err) {
-      console.error("Error loading more news links:", err);
     } finally {
-      setIsLoadingMore(false);
+      if (isMounted.current) setIsLoadingMore(false);
     }
   }, [isLoadingMore, hasMore, page]);
 
@@ -272,5 +304,3 @@ export default function NewsLinkSection({
     </section>
   );
 }
-
-

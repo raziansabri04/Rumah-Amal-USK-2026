@@ -1,6 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { HomeLanguage } from '@/lib/i18n/home';
+
+// new URL() melempar error kalau url tidak valid, dan itu akan merobohkan seluruh render
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace('www.', '');
+  } catch {
+    return url;
+  }
+}
 
 interface NewsLinkCardProps {
   url: string;
@@ -21,6 +31,7 @@ export default function NewsLinkCard({
   lang = 'id',
   shouldLoadImage = true,
 }: NewsLinkCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const newsLabel = lang === 'ar' ? 'أخبار' : lang === 'en' ? 'News' : 'Berita';
 
   return (
@@ -32,7 +43,7 @@ export default function NewsLinkCard({
     >
       {/* Gambar */}
       <div className="relative aspect-[16/9] w-full bg-gray-100 overflow-hidden flex-shrink-0">
-        {image ? (
+        {image && !imageFailed ? (
           shouldLoadImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -40,6 +51,7 @@ export default function NewsLinkCard({
               alt={title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              onError={() => setImageFailed(true)}
             />
           ) : (
             <div className="w-full h-full bg-gray-200/80 animate-pulse flex items-center justify-center">
@@ -101,11 +113,10 @@ export default function NewsLinkCard({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
           <span className="text-[10px] text-gray-400 font-medium truncate">
-            {source || new URL(url).hostname.replace('www.', '')}
+            {source || getHostname(url)}
           </span>
         </div>
       </div>
     </a>
   );
 }
-

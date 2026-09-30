@@ -3,6 +3,7 @@ import "@/app/globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PushNotificationBanner from "@/components/PushNotificationBanner";
+import BadgeSync from "@/components/BadgeSync";
 
 export const metadata: Metadata = {
   title: "Rumah Amal Masjid Jamik Universitas Syiah Kuala",
@@ -22,6 +23,7 @@ export default function MainLayout({
       <div className="flex-1">{children}</div>
       <Footer />
       <PushNotificationBanner />
+      <BadgeSync />
     </div>
   );
 }

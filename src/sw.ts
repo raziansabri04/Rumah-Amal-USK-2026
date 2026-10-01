@@ -106,25 +106,89 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// Normalisasi pathname supaya "/pengumuman" dan "/pengumuman/" dianggap sama.
+function normalizePath(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+}
+
+// Buka/fokus halaman tujuan notifikasi.
+// - Jendela app sudah di halaman tujuan -> cukup fokus.
+// - Jendela app ada tapi di halaman lain -> fokus lalu navigasi ke tujuan.
+// - Tidak ada jendela app -> buka jendela baru.
+// - URL eksternal (origin berbeda) -> selalu buka jendela baru.
+async function openOrFocusWindow(target: URL): Promise<void> {
+  const isInternal = target.origin === self.location.origin;
+
+  if (isInternal) {
+    const clientList = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    });
+
+    // Hanya pertimbangkan jendela dari origin yang sama.
+    const sameOrigin = clientList.filter(
+      (c) => new URL(c.url).origin === target.origin
+    ) as WindowClient[];
+
+    const targetPath = normalizePath(target.pathname);
+
+    // 1. Jendela yang sudah persis di halaman tujuan (path + query).
+    const exact = sameOrigin.find((c) => {
+      const u = new URL(c.url);
+      return normalizePath(u.pathname) === targetPath && u.search === target.search;
+    });
+    if (exact) {
+      await exact.focus();
+      return;
+    }
+
+    // 2. Jendela lain milik app publik. Jangan pernah "membajak" tab admin
+    //    (kecuali tujuannya memang halaman admin), supaya pekerjaan admin
+    //    yang sedang berjalan tidak hilang karena navigasi.
+    const targetIsAdmin = targetPath.startsWith("/admin");
+    const reusable = sameOrigin.filter((c) => {
+      const isAdmin = normalizePath(new URL(c.url).pathname).startsWith("/admin");
+      return targetIsAdmin ? isAdmin : !isAdmin;
+    });
+    const candidate =
+      reusable.find((c) => c.visibilityState === "visible") ?? reusable[0];
+
+    if (candidate) {
+      try {
+        await candidate.focus();
+        await candidate.navigate(target.href);
+        return;
+      } catch {
+        // navigate() gagal (mis. jendela tidak dikontrol service worker ini)
+        // -> lanjut ke openWindow di bawah.
+      }
+    }
+  }
+
+  if (self.clients.openWindow) {
+    await self.clients.openWindow(target.href);
+  }
+}
+
 // TAMBAHAN: saat notifikasi diklik, buka/fokus ke halaman terkait.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data as { url?: string })?.url || "/";
+  const rawUrl = (event.notification.data as { url?: string })?.url || "/";
+
+  // new URL() menerima path internal ("/pengumuman") maupun URL penuh
+  // ("https://example.com"). Kalau formatnya rusak, fallback ke beranda.
+  let target: URL;
+  try {
+    target = new URL(rawUrl, self.location.origin);
+  } catch {
+    target = new URL("/", self.location.origin);
+  }
 
   event.waitUntil(
     Promise.all([
       // User sudah lihat notifikasinya (klik) -> badge di-reset ke 0.
       clearBadgeCount(),
-      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-        for (const client of clientList) {
-          if (client.url.includes(targetUrl) && "focus" in client) {
-            return client.focus();
-          }
-        }
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(targetUrl);
-        }
-      }),
+      openOrFocusWindow(target),
     ])
   );
 });

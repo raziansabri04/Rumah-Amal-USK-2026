@@ -1,16 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useInstallPrompt } from "@/hooks/use-install-prompt";
 
 interface InstallAppButtonProps {
   label?: string;
   iosInstructionTitle?: string;
+  /** Tautan ke halaman panduan (misal "/cara-install"). Kalau kosong, tautan tidak ditampilkan. */
+  guideHref?: string;
+  /** Teks tautan di samping tombol, misal "Cara install" */
+  guideLabel?: string;
+  /** Teks tautan di dalam modal, misal "Masih bingung? Lihat panduan lengkap" */
+  guideModalLabel?: string;
 }
 
 export function InstallAppButton({
   label = "Install Aplikasi",
   iosInstructionTitle = "Install Aplikasi",
+  guideHref,
+  guideLabel,
+  guideModalLabel,
 }: InstallAppButtonProps) {
   const { isInstalled, platform, canPromptNatively, promptInstall } =
     useInstallPrompt();
@@ -30,6 +40,8 @@ export function InstallAppButton({
 
   return (
     <>
+      {/* Tombol + tautan panduan satu wrapper, jadi keduanya ikut hilang saat app sudah ter-install */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <button
         onClick={handleClick}
         aria-label={label}
@@ -41,13 +53,23 @@ export function InstallAppButton({
         {label}
       </button>
 
+      {guideHref && guideLabel && (
+        <Link
+          href={guideHref}
+          className="text-sm font-semibold text-[#ffc800] underline underline-offset-4 hover:text-white transition-colors"
+        >
+          {guideLabel}
+        </Link>
+      )}
+      </div>
+
       {showModal && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            className="w-full max-w-sm rounded-xl bg-white p-6 text-start shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -99,7 +121,8 @@ export function InstallAppButton({
             {platform === "chromium" && (
               <p className="text-sm text-gray-700">
                 Buka menu browser (ikon titik tiga di pojok kanan atas), lalu
-                pilih <b>Install App</b> atau <b>Add to Home Screen</b>.
+                pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>{" "}
+                (tampilan awal tempat ikon aplikasi berada).
               </p>
             )}
 
@@ -109,6 +132,16 @@ export function InstallAppButton({
                 langsung. Coba gunakan <b>Google Chrome</b> atau{" "}
                 <b>Microsoft Edge</b> untuk pengalaman terbaik.
               </p>
+            )}
+
+            {guideHref && guideModalLabel && (
+              <Link
+                href={guideHref}
+                onClick={() => setShowModal(false)}
+                className="mt-4 inline-block text-sm font-semibold text-[#0b6330] underline underline-offset-4 hover:text-[#084823]"
+              >
+                {guideModalLabel}
+              </Link>
             )}
           </div>
         </div>

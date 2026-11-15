@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { footerDictionary, FooterLanguage } from "@/lib/i18n/footer";
 import { InstallAppButton } from "@/components/InstallAppButton";
 import NotificationToggle from "@/components/NotificationToggle";
+import { installGuideDictionary } from "@/lib/i18n/cara-install";
 
 export default function Footer() {
   const [lang, setLang] = useState<FooterLanguage>('id');
@@ -24,6 +25,7 @@ export default function Footer() {
 
 
   const dict = footerDictionary[lang] || footerDictionary.id;
+  const guideDict = installGuideDictionary[lang] || installGuideDictionary.id;
 
   return (
     <>
@@ -146,7 +148,11 @@ export default function Footer() {
 
             {/* Install App + toggle notifikasi - di atas CTA Ajukan Keluhan */}
             <div className="mt-2 flex flex-col items-start gap-3">
-              <InstallAppButton />
+              <InstallAppButton
+                guideHref="/cara-install"
+                guideLabel={guideDict.footerLink}
+                guideModalLabel={guideDict.modalLink}
+              />
               <NotificationToggle lang={lang} />
             </div>
 

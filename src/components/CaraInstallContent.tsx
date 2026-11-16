@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { InstallAppButton } from "@/components/InstallAppButton";
+import InstallGuideIllustration from "@/components/InstallGuideIllustration";
 import { useInstallPrompt } from "@/hooks/use-install-prompt";
 import {
   installGuideDictionary,
@@ -17,12 +18,25 @@ const IN_APP_BROWSER_REGEX =
   /FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|musical_ly|Snapchat|Twitter|GSA\//i;
 
 /**
- * Screenshot opsional: file diletakkan di public/cara-install/<tab>-<nomor>.webp
- * Kalau file belum ada, gambar disembunyikan otomatis (tidak menampilkan ikon rusak).
+ * Gambar tiap langkah:
+ * 1) pakai screenshot asli di public/cara-install/<tab>-<nomor>.webp kalau filenya ada,
+ * 2) kalau belum ada, tampilkan ilustrasi bawaan (InstallGuideIllustration).
  */
-function StepImage({ src, alt }: { src: string; alt: string }) {
+function StepImage({
+  src,
+  alt,
+  tab,
+  step,
+}: {
+  src: string;
+  alt: string;
+  tab: InstallGuideTab;
+  step: number;
+}) {
   const [failed, setFailed] = useState(false);
-  if (failed) return null;
+  if (failed) {
+    return <InstallGuideIllustration tab={tab} step={step} label={alt} />;
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -198,6 +212,8 @@ export default function CaraInstallContent() {
                     <StepImage
                       src={`/cara-install/${tab}-${index + 1}.webp`}
                       alt={step.title}
+                      tab={tab}
+                      step={index + 1}
                     />
                   </div>
                 </li>
